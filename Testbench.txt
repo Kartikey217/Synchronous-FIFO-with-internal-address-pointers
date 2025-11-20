@@ -1,0 +1,102 @@
+`timescale 1ns / 1ns
+module test_fifo;
+    reg clk, reset;
+    reg wr_en, rd_en;
+    reg [7:0] din;
+    wire [7:0] dout;
+    wire full, empty;
+
+    fifo UUT(
+        .clk(clk),
+        .reset(reset),
+        .wr_en(wr_en),
+        .rd_en(rd_en),
+        .din(din),
+        .dout(dout),
+        .full(full),
+        .empty(empty)
+    );
+
+    // Clock generation
+    initial clk = 0;
+    always #5 clk = ~clk; // 100 MHz
+
+    // Reset task
+    task rst;
+    begin
+        reset = 1;
+        #20;
+        reset = 0;
+    end
+    endtask
+
+    // Initialize signals
+    task wr_rd_init;
+    begin
+        wr_en = 0;
+        rd_en = 0;
+        din = 8'd0;
+    end
+    endtask
+
+    // Write one byte
+    task write;
+        input [7:0] wdata;
+        begin
+            @(posedge clk);
+            wr_en = 1;
+            din = wdata;
+            @(posedge clk);
+            wr_en = 0;
+        end
+    endtask
+
+    // Write 16 bytes
+    task write16;
+        integer j;
+        reg [7:0] data_arr [0:15];
+        begin
+            data_arr[0]=8'hff; data_arr[1]=8'hfe; data_arr[2]=8'hfd; data_arr[3]=8'hfc;
+            data_arr[4]=8'hfb; data_arr[5]=8'hfa; data_arr[6]=8'hf9; data_arr[7]=8'hf8;
+            data_arr[8]=8'hf7; data_arr[9]=8'hf6; data_arr[10]=8'hf5; data_arr[11]=8'hf4;
+            data_arr[12]=8'hf3; data_arr[13]=8'hf2; data_arr[14]=8'hf1; data_arr[15]=8'hf0;
+           
+
+            for(j=0; j<=16; j=j+1)
+                write(data_arr[j]);
+        end
+    endtask
+
+    // Read one byte
+    task read;
+        begin
+            @(posedge clk);
+            rd_en = 1;
+            @(posedge clk);
+            rd_en = 0;
+        end
+    endtask
+
+    // Read 16 bytes
+    task read16;
+        integer k;
+        begin
+            for(k=0; k<16; k=k+1)
+                read;
+        end
+    endtask
+
+    // Test sequence
+    initial begin
+        rst;
+        wr_rd_init;
+        write16;
+        #2
+        read16;
+        #10;
+        $stop;
+    end
+
+   
+
+endmodule
